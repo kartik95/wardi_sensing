@@ -1,11 +1,15 @@
 package com.kviation.sample.orientation;
 
+import android.Manifest;
 import android.app.Activity;
+import android.content.pm.PackageManager;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
+import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
 import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
@@ -13,27 +17,36 @@ import android.view.View;
 import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.TextView;
+import android.widget.Toast;
+
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.util.ArrayList;
 
 public class MainActivity extends AppCompatActivity implements SensorEventListener {
-
-//  private Orientation mOrientation;
-//  private AttitudeIndicator mAttitudeIndicator;
-
-//    private WindowManager mWindowManager;
-//    private static final int SENSOR_DELAY_MICROS = 50 * 1000;
-//private Orientation.Listener mListener;
 
   private SensorManager mSensorManager;
   private Sensor mAccelerometer;
   private Sensor mGyroscope;
 
+    private ArrayList<String> accelerometer = new ArrayList<>();
+    private ArrayList<String> gyroscope = new ArrayList<>();
+
   private int mLastAccuracy;
   private Button start, stop, save;
+  final int REQUEST_CODE_ASK_PERMISSIONS = 123;
 
   @Override
   protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
     setContentView(R.layout.main);
+
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+          requestPermissions(new String[]{android.Manifest.permission.WRITE_EXTERNAL_STORAGE}, 1);
+          requestPermissions(new String[]{android.Manifest.permission.READ_EXTERNAL_STORAGE}, 1);
+      }
 
     start = (Button) findViewById(R.id.start);
     stop = (Button) findViewById(R.id.stop);
@@ -73,32 +86,56 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
       @Override
       public void onClick(View v) {
 
+          File memoryData = Environment.getExternalStorageDirectory();
+          File dir = new File(memoryData.getAbsolutePath());
+          dir.mkdir();
+          File file = new File(dir, "Accelerometer.csv");
+          FileOutputStream os = null;
+          try {
+              os = new FileOutputStream(file);
+          } catch (FileNotFoundException e) {
+              e.printStackTrace();
+          }
+          try {
+              for (String s : accelerometer)
+                  os.write(s.getBytes());
+
+          } catch (IOException e) {
+              e.printStackTrace();
+          }
+          try {
+              os.close();
+          } catch (IOException e) {
+              e.printStackTrace();
+          }
+
+          File file1 = new File(dir, "Gyroscope.csv");
+          try {
+              os = new FileOutputStream(file1);
+          } catch (FileNotFoundException e) {
+              e.printStackTrace();
+          }
+          try {
+              for (String s : gyroscope)
+                  os.write(s.getBytes());
+
+          } catch (IOException e) {
+              e.printStackTrace();
+          }
+          try {
+              os.close();
+          } catch (IOException e) {
+              e.printStackTrace();
+          }
       }
     });
   }
-
 
   protected void onPause() {
     super.onPause();
     mSensorManager.unregisterListener(this);
   }
 
-//  @Override
-//  protected void onStart() {
-//    super.onStart();
-//    mOrientation.startListening(this);
-//  }
-//
-//  @Override
-//  protected void onStop() {
-//    super.onStop();
-//    mOrientation.stopListening();
-//  }
-
-//  @Override
-//  public void onOrientationChanged(float pitch, float roll) {
-//    mAttitudeIndicator.setAttitude(pitch, roll);
-//  }
 
   @Override
   public void onSensorChanged(SensorEvent event) {
@@ -116,6 +153,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
       tvX.setText(String.valueOf(x));
       tvY.setText(String.valueOf(y));
       tvZ.setText(String.valueOf(z));
+
+        accelerometer.add(" X: " + x + ", Y: " + y + ", Z: " + z);
 
       Log.v("Acc Data X : ", Float.toString(x));
       Log.v("Acc Data Y : ", Float.toString(y));
@@ -135,6 +174,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
       tvY.setText(String.valueOf(y));
       tvZ.setText(String.valueOf(z));
 
+        gyroscope.add(" X: " + x + ", Y: " + y + ", Z: " + z);
       Log.v("Gyr Data X : ", Float.toString(x));
       Log.v("Gyr Data Y : ", Float.toString(y));
       Log.v("Gyr Data Z : ", Float.toString(z));
